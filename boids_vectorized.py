@@ -8,6 +8,7 @@ import glob
 import h5py
 from random import uniform
 from scipy.spatial import Voronoi as ScipyVoronoi
+import math
 
 # functional definitions
 def compute_alignment(vel, const_speed, neighbor_mask, neighbour_count):

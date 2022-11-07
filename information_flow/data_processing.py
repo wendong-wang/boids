@@ -40,9 +40,10 @@ class H5PY_PROCESSOR():
         
         display
         ----
-        the structure of the file. [G] means group, [D] means the path
+        the structure of the file. [G] means group, [D] means the database
 
         examples:
+        ---
         self.search_Deep("/","/")
 
         Warning

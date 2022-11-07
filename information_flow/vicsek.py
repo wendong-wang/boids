@@ -7,7 +7,12 @@
 
 '''
 version description:
-    角度0~2pi，直接取平均，参照[2]中的original vicsek
+    original vicsek,参照[2]的表示方法，现在是一种中和状态，既有Theta变量又有速度
+
+相对与上一版改进的说明：
+    其实Vicsek原始模型中对角度取actan(sin/cos)的计算，其实也是对从速度分量的角度考虑的，因为速度的大小相同
+    actan(vsin/vcos) v可以约掉。所以我们或许直接放弃角度和速度大小speed的组合，而直接使用速度分量的组合。
+    那么就要考虑速度大小，以及扰动是如何影响的了。
 '''
 #考虑：
 #   1. 动画部分要不要放入VICSEK类中
@@ -47,8 +52,9 @@ class VICSEK():
     --
     # l: the simulations are carried out in a square shape cell of linear size L 1x1 场地大小
     # n: n units 1x1 个数
-    # v: velocities of the units ( temporarily) 1x1 速度大小
+    # v: value of the velocities of the units  1x1 速度大小
     # Theta: directions nx1 角度(每个unit运动的不同)
+    # V: velocities of the units nx2 
     # P: matrix of the positions of the units nx2 位置矩阵
     # r: the radius that an unit can feel 1x1 所感知的半径
     # yeta: the strength of the noises 1x1 噪声
@@ -88,6 +94,8 @@ class VICSEK():
         self.P = rng.random((self.n,2))*self.l
         # init Theta
         self.Theta = rng.random((self.n,1))*2*np.pi
+        # init Velocity
+        self.V = np.hstack((self.v*np.cos(self.Theta),self.v*np.sin(self.Theta)))
         
 
 
@@ -141,7 +149,7 @@ def _move(frameNumber, vicsek: VICSEK, process):
 #%%
 def update(vicsek: VICSEK):
     '''
-    update the position.        ref:[2] Emergent Behavior in Flocks->角度取平均问题
+    update the position.        ref:[2] Emergent Behavior in Flocks
 
     Parameters:
         vicsek: VICSEK(class) default: 
@@ -159,8 +167,11 @@ def update(vicsek: VICSEK):
     #noise
     rng = np.random.default_rng()
     Noises = rng.random((vicsek.n,1))*vicsek.yeta -vicsek.yeta/2
-    vicsek.Theta = np.matmul((id - np.matmul(np.linalg.inv(Dx),Lx)),vicsek.Theta)
+
+    # vicsek.Theta = np.matmul((id - np.matmul(np.linalg.inv(Dx),Lx)),vicsek.Theta)
+    vicsek.Theta = np.arctan(np.matmul(Ax,vicsek.V[:,0])/(np.matmul(Ax,vicsek.V[:,1])+0.00000001)).reshape((vicsek.n,1))
     vicsek.Theta += Noises
+    vicsek.V = np.hstack((vicsek.v*np.cos(vicsek.Theta),vicsek.v*np.sin(vicsek.Theta)))
     vicsek.P = vicsek.P + np.hstack((vicsek.v*np.cos(vicsek.Theta),vicsek.v*np.sin(vicsek.Theta)))
     # vicsek.P = vicsek.P % vicsek.l#取余
     
@@ -180,4 +191,3 @@ if __name__ == "__main__":
 [1] Novel Type of Phase Transition in a System of Self-Driven Particles
 [2] Emergent Behavior in Flocks
 '''
-

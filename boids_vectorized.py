@@ -6,10 +6,8 @@ import os
 import cv2 as cv
 import glob
 import h5py
-# from random import uniform
+from random import uniform
 from scipy.spatial import Voronoi as ScipyVoronoi
-import math
-
 
 # functional definitions
 def compute_alignment(vel, const_speed, neighbor_mask, neighbour_count):
@@ -509,7 +507,7 @@ def main():
     arena_size = 1000.0   # size of the output images
     speed = 1.0
     neighbor_distance_threshold = 50
-    neighbours_by_vor = 0  # 1: define neighbours by voronoi; 0: define neighbours by distance threshold
+    neighbours_by_vor = 1  # 1: define neighbours by voronoi; 0: define neighbours by distance threshold
     # compare 0 and 1
     rng = np.random.default_rng()
     velocity = (rng.random((n, 2))-0.5) * speed  # uniform distribution
@@ -525,21 +523,22 @@ def main():
     # steering factor controls the rate of velocity update
     # smaller values means slower response to velocity change
     # bigger values (~1) leads to an interesting static phase
-    steering_factor = 0.0001
+    steering_factor = 0.001
     # noise added to the dir
-    noise_factor = 0
+    noise_factor = 4
 
     dt = 1  # time interval  # change to 1
     num_step = 100000  # total number of steps
-    output_images = 1  # flag for image output
-    figsave_interval = 10  # the interval for saving images
+    output_images = 0  # flag for image output
+    figsave_interval = 0  # the interval for saving images
 
     now = datetime.datetime.now()
     output_folder = now.strftime("%Y-%m-%d_%H-%M-%S") + '_' + str(n) + 'boids_' + \
                     str(num_step) + 'timeStep_' + \
                     str(steering_factor) + 'Steering factor_' + str(noise_factor) + 'Noise_' + \
-                    str(a_sep) + 'a_sep_' + str(a_ali) + 'a_ali_' + str(a_coh) + 'a_coh_' + '9boids' + '3'
+                    '9boids' + '3'
 
+    os.chdir("reporting data_vor_square")
     if not os.path.isdir(output_folder):
         os.mkdir(output_folder)
     os.chdir(output_folder)
@@ -633,21 +632,22 @@ def main():
 
 
     # %% writing video file
-    image_files = glob.glob('*.jpg')
-    image_files.sort()
+    if output_images:
+        image_files = glob.glob('*.jpg')
+        image_files.sort()
 
-    output_video_name = output_folder + '.mp4'
-    output_framerate = 30
-    fourcc = cv.VideoWriter_fourcc(*'DIVX')
-    img = cv.imread(image_files[0])
-    frameW, frameH, _ = img.shape
-    video_out = cv.VideoWriter(output_video_name, fourcc,
+        output_video_name = output_folder + '.mp4'
+        output_framerate = 30
+        fourcc = cv.VideoWriter_fourcc(*'DIVX')
+        img = cv.imread(image_files[0])
+        frameW, frameH, _ = img.shape
+        video_out = cv.VideoWriter(output_video_name, fourcc,
                                output_framerate, (frameW, frameH), isColor=1)
-    for i in progressbar.progressbar(np.arange(len(image_files))):
-        img = cv.imread(image_files[i])
-        video_out.write(img)
+        for i in progressbar.progressbar(np.arange(len(image_files))):
+            img = cv.imread(image_files[i])
+            video_out.write(img)
 
-    video_out.release()
+        video_out.release()
 
 
     # %% writing the data file

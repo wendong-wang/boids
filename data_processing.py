@@ -4,11 +4,11 @@ import h5py
 import numpy as np
 import progressbar
 from scipy.spatial import distance as scipy_distance
+from scipy.fftpack import fft, ifft
 from scipy.spatial import Voronoi as ScipyVoronoi
 import matplotlib.pyplot as plt
-from boids_vectorized_9boids_5_3 import enlarged_pos_vel
-from scipy.fftpack import fft,ifft
-import statistics
+from boids_vectorized_9boids import enlarged_pos_vel
+
 
 
 def neighbour_pair_list_to_matrix(num_of_pts, nlist):
@@ -44,13 +44,13 @@ def compute_h_ndist(ndistances, bin_edges):
 
 
 # %% load the data file
-project_folder = r'E:\Hndist'
+project_folder = r'C:\learning\VK493\hw5\vectorized_boids\reporting data_vor_square'
 os.chdir(project_folder)
 project_folder_tree_gen = os.walk(project_folder)
 _, results_folders, _ = next(project_folder_tree_gen)
 results_folders.sort()
 
-results_folder_id = 2
+results_folder_id = 50# check the last result
 os.chdir(results_folders[results_folder_id])
 
 data_file_list = glob.glob('*.hdf5')
@@ -68,17 +68,24 @@ a_ali = f['a_ali']
 a_coh = f['a_coh']
 n, _, last_num_steps = position_saved.shape  # n is the number of boids
 print('all read')
-print(f)
 # f.close()
 
 # %% set up the variables and parameters
 
 bin_edges_ndist = np.arange(0, 700, 5).tolist() + [2000]
 H_NDist_arr = np.zeros(last_num_steps)
+H_NDist_arr_10 = np.zeros(int(last_num_steps/10))
+H_NDist_arr_100 = np.zeros(int(last_num_steps/100))
 H_NDist_adj_arr = np.zeros(last_num_steps)
+H_NDist_adj_arr_10 = np.zeros(int(last_num_steps/10))
+H_NDist_adj_arr_100 = np.zeros(int(last_num_steps/100))
 H_NDist_norm_arr = np.zeros(last_num_steps)
+H_NDist_norm_arr_10 = np.zeros(int(last_num_steps/10))
+H_NDist_norm_arr_100 = np.zeros(int(last_num_steps/100))
 vel_avg_norm_arr = np.zeros(last_num_steps)
-vel_dev_norm_arr = np.zeros(2000)  # s
+vel_avg_norm_arr_10 = np.zeros(int(last_num_steps/10))
+vel_avg_norm_arr_100 = np.zeros(int(last_num_steps/100))
+#vel_dev_norm_arr = np.zeros(2000)  # s
 
 for i in progressbar.progressbar(np.arange(last_num_steps)):
     vel_avg = np.mean(velocity_saved[:, :, i], axis=0)
@@ -113,10 +120,35 @@ for i in progressbar.progressbar(np.arange(last_num_steps)):
     H_NDist_arr[i], H_NDist_adj_arr[i], H_NDist_norm_arr[i] = \
         compute_h_ndist(neighbour_distances, bin_edges_ndist)
 
+    if i % 10 == 0:
+        neighbour_distances_10 = []
+        vel_10 = np.zeros([10, 2])
+
+    if i % 100 == 0:
+        neighbour_distances_100 = []
+        vel_100 = np.zeros([100, 2])
+
+    neighbour_distances_10 = np.hstack((neighbour_distances_10, neighbour_distances))
+    vel_10[i%10, :] = vel_avg
+    neighbour_distances_100 = np.hstack((neighbour_distances_100, neighbour_distances))
+    vel_100[i%100, :] = vel_avg
+
+    if i % 10 == 9:
+        H_NDist_arr_10[int((i+1)/10-1)], H_NDist_adj_arr_10[int((i+1)/10-1)], H_NDist_norm_arr_10[int((i+1)/10-1)] = \
+            compute_h_ndist(neighbour_distances_10, bin_edges_ndist)
+        vel_avg_10 = np.mean(vel_10[:, :], axis=0)
+        vel_avg_norm_arr_10[int((i + 1) / 10 - 1)] = np.sqrt(vel_avg_10[0] ** 2 + vel_avg_10[1] ** 2)
+
+    if i % 100 == 99:
+        H_NDist_arr_100[int((i + 1) / 100 - 1)], H_NDist_adj_arr_100[int((i + 1) / 100 - 1)], H_NDist_norm_arr_100[int((i + 1) / 100 - 1)] = \
+            compute_h_ndist(neighbour_distances_100, bin_edges_ndist)
+        vel_avg_100 = np.mean(vel_100[:, :], axis=0)
+        vel_avg_norm_arr_100[int((i+1)/100-1)] = np.sqrt(vel_avg_100[0]**2 + vel_avg_100[1]**2)
+
     if i > last_num_steps - 1999:
         neighbour_distances_last = np.hstack((neighbour_distances_last, neighbour_distances))
-        vel_dev = np.std(velocity_saved[:, :, i], axis=0)  # s
-        vel_dev_norm_arr[i-last_num_steps+2000] = np.sqrt(vel_dev[0] ** 2 + vel_dev[1] ** 2)  # s
+        #vel_dev = np.std(velocity_saved[:, :, i], axis=0)  # s
+        #vel_dev_norm_arr[i-last_num_steps+2000] = np.sqrt(vel_dev[0] ** 2 + vel_dev[1] ** 2)  # s
         if i > last_num_steps - 199:
             neighbour_distances_last_2 = np.hstack((neighbour_distances_last_2, neighbour_distances))
             if i > last_num_steps - 19:
@@ -127,8 +159,8 @@ for i in progressbar.progressbar(np.arange(last_num_steps)):
             neighbour_distances_last_2 = neighbour_distances
     elif i == last_num_steps - 1999:
         neighbour_distances_last = neighbour_distances
-        vel_dev = np.std(velocity_saved[:, :, i], axis=0)  # s
-        vel_dev_norm_arr[0] = np.sqrt(vel_dev[0] ** 2 + vel_dev[1] ** 2)  # s
+        #vel_dev = np.std(velocity_saved[:, :, i], axis=0)  # s
+        #vel_dev_norm_arr[0] = np.sqrt(vel_dev[0] ** 2 + vel_dev[1] ** 2)  # s
 
 
 # print average parameters
@@ -142,8 +174,9 @@ std_for_H_NDist_adj = np.std(H_NDist_adj_per_100)
 std_for_H_NDist_norm = np.std(H_NDist_norm_per_100)
 
 H_NDist_avg, H_NDist_adj_avg, H_NDist_norm_avg = compute_h_ndist(neighbour_distances_last, bin_edges_ndist)
-vel_last_avg = np.mean(np.mean(velocity_saved[:, :, -1001:-1], axis=0), axis=1)
+vel_last_avg = np.mean(np.mean(velocity_saved[:, :, -2000:], axis=0), axis=1)
 vel_last_norm_avg = np.sqrt(vel_last_avg[0]**2 + vel_last_avg[1]**2)
+std_for_vel_norm = np.std(vel_avg_norm_arr[-5000:])
 
 H_NDist_avg_2, H_NDist_adj_avg_2, H_NDist_norm_avg_2 = compute_h_ndist(neighbour_distances_last_2, bin_edges_ndist)
 H_NDist_avg_3, H_NDist_adj_avg_3, H_NDist_norm_avg_3 = compute_h_ndist(neighbour_distances_last_3, bin_edges_ndist)
@@ -167,8 +200,6 @@ print("vel_last_avg = ")
 print(vel_last_avg)
 print("vel_last_norm_avg = ")
 print(vel_last_norm_avg)
-print("vel_last_norm_avg = ")
-print(vel_last_norm_avg)
 print("H_NDist_per_100 = ")
 print(H_NDist_per_100)
 print("H_NDist_norm_per_100 = ")
@@ -177,12 +208,33 @@ print("std_for_H_NDist = ")
 print(std_for_H_NDist)
 print("std_for_H_NDist_norm = ")
 print(std_for_H_NDist_norm)
-print("va norm variance last 80000 = ")
-print(statistics.variance(vel_avg_norm_arr[-80001:-1]))
-print("hndist norm variance last 80000 = ")
-print(statistics.variance(H_NDist_norm_arr[-80001:-1]))
+print("std_for_vel_norm = ")
+print(std_for_vel_norm)
+
 
 # save variables
+# del f['H_NDist_avg']
+# del f['H_NDist_adj_avg']
+# del f['H_NDist_norm_avg']
+# del f['H_NDist_avg_2']
+# del f['H_NDist_adj_avg_2']
+# del f['H_NDist_norm_avg_2']
+# del f['H_NDist_avg_3']
+# del f['H_NDist_adj_avg_3']
+# del f['H_NDist_norm_avg_3']
+# del f['vel_last_avg']
+# del f['vel_last_norm_avg']
+# del f['H_NDist_norm_arr']
+# del f['neighbour_distances_last']
+# del f['neighbour_distances_last_2']
+# del f['neighbour_distances_last_3']
+# del f['H_NDist_per_100']
+# del f['H_NDist_adj_per_100']
+# del f['H_NDist_norm_per_100']
+# del f['std_for_H_NDist']
+# del f['std_for_H_NDist_norm']
+# del f['std_for_vel_norm']
+#del f['vel_dev_norm_arr']
 f.create_dataset('H_NDist_avg', data=H_NDist_avg)
 f.create_dataset('H_NDist_adj_avg', data=H_NDist_adj_avg)
 f.create_dataset('H_NDist_norm_avg', data=H_NDist_norm_avg)
@@ -194,6 +246,7 @@ f.create_dataset('H_NDist_adj_avg_3', data=H_NDist_adj_avg_3)
 f.create_dataset('H_NDist_norm_avg_3', data=H_NDist_norm_avg_3)
 f.create_dataset('vel_last_avg', data=vel_last_avg)
 f.create_dataset('vel_last_norm_avg', data=vel_last_norm_avg)
+f.create_dataset('vel_avg_norm_arr', data=vel_avg_norm_arr)
 
 f.create_dataset('H_NDist_norm_arr', data=H_NDist_norm_arr)
 
@@ -206,9 +259,10 @@ f.create_dataset('H_NDist_adj_per_100', data=H_NDist_adj_per_100)
 f.create_dataset('H_NDist_norm_per_100', data=H_NDist_norm_per_100)
 f.create_dataset('std_for_H_NDist', data=std_for_H_NDist)
 f.create_dataset('std_for_H_NDist_norm', data=std_for_H_NDist_norm)
+f.create_dataset('std_for_vel_norm', data=std_for_vel_norm)
 
-f.create_dataset('vel_dev_norm_arr', data=vel_dev_norm_arr)
-f.create_dataset('vel_avg_norm_arr', data=vel_avg_norm_arr)
+# f.create_dataset('vel_dev_norm_arr', data=vel_dev_norm_arr)
+
 
 
 # %% code for plotting
@@ -249,6 +303,28 @@ plt.savefig('H_NDist_norm over steps.png')
 fig.show()
 # save figure
 
+# plotting H_NDist_norm over 10 frames
+fig, ax = plt.subplots(1, 1, figsize=(15, 15))
+ax.plot(np.arange(5, last_num_steps+5, 10), H_NDist_norm_arr_10, label='H_NDist_norm over 10 frames')
+ax.set_xlabel('steps', {'size': 15})
+ax.set_ylabel('H_NDist_norm', {'size': 15})
+ax.set_title('H_NDist_norm over 10 steps', {'size': 15})
+ax.legend(loc='best')
+plt.savefig('H_NDist_norm over 10 steps.png')
+fig.show()
+# save figure
+
+# plotting H_NDist_norm over 100 frames
+fig, ax = plt.subplots(1, 1, figsize=(15, 15))
+ax.plot(np.arange(50, last_num_steps+50, 100), H_NDist_norm_arr_100, label='H_NDist_norm over 100 frames')
+ax.set_xlabel('steps', {'size': 15})
+ax.set_ylabel('H_NDist_norm', {'size': 15})
+ax.set_title('H_NDist_norm over 100 steps', {'size': 15})
+ax.legend(loc='best')
+plt.savefig('H_NDist_norm over 100 steps.png')
+fig.show()
+# save figure
+
 
 # plotting average velocity over frames
 fig, ax = plt.subplots(1, 1, figsize=(15, 15))
@@ -261,180 +337,96 @@ plt.savefig('norm of average velocity over steps.png')
 fig.show()
 # save figure
 
+# plotting average velocity over 10 frames
+fig, ax = plt.subplots(1, 1, figsize=(15, 15))
+ax.plot(np.arange(5, last_num_steps+5, 10), vel_avg_norm_arr_10, label='average velocity over 10 frames')
+ax.set_xlabel('steps', {'size': 15})
+ax.set_ylabel('norm of average velocity', {'size': 15})
+ax.set_title('norm of average velocity over 10 steps', {'size': 15})
+ax.legend(loc='best')
+plt.savefig('norm of average velocity over 10 steps.png')
+fig.show()
+# save figure
+
+# plotting average velocity over 10 frames
+fig, ax = plt.subplots(1, 1, figsize=(15, 15))
+ax.plot(np.arange(50, last_num_steps+50, 100), vel_avg_norm_arr_100, label='average velocity over 100 frames')
+ax.set_xlabel('steps', {'size': 15})
+ax.set_ylabel('norm of average velocity', {'size': 15})
+ax.set_title('norm of average velocity over 100 steps', {'size': 15})
+ax.legend(loc='best')
+plt.savefig('norm of average velocity over 100 steps.png')
+fig.show()
+# save figure
+
+# plotting H_NDist_norm and v_a over steps
+fig, ax1 = plt.subplots(1, 1, figsize=(15, 15))
+ax2 = ax1.twinx()
+ax1.plot(np.arange(last_num_steps), H_NDist_norm_arr, label='H_NDist_norm')
+ax2.plot(np.arange(last_num_steps), vel_avg_norm_arr, label='average velocity', c='orangered')
+ax1.set_xlabel('steps', {'size': 15})
+ax1.set_ylabel('H_NDist_norm', {'size': 15})
+ax1.set_ylim([0, 1])
+ax2.set_ylim([0, 1])
+ax2.set_ylabel('norm of average velocity', {'size': 15})
+ax1.set_title('H_NDist_norm and v_a over steps', {'size': 15})
+ax1.legend(loc=1)
+ax2.legend(loc=2)
+plt.savefig('H_NDist_norm and v_a over steps.png')
+fig.show()
+# save figure
+
 
 # s tries to plot the error bar of the average velocity
-plt.errorbar(np.arange(last_num_steps)[-2001:-1], vel_avg_norm_arr[-2001:-1],
-             yerr=vel_dev_norm_arr/np.sqrt(100))
-ax.set_xlabel('steps', {'size': 15})
-ax.set_ylabel('norm of average velocity with error bar', {'size': 15})
-ax.set_title('norm of average velocity with error bar over steps', {'size': 15})
-ax.legend(loc='best')
-plt.savefig('norm of average velocity over last 2000 steps with error bars.png')
-plt.show()
+# plt.errorbar(np.arange(last_num_steps)[-2001:-1], vel_avg_norm_arr[-2001:-1],
+#              yerr=vel_dev_norm_arr)
+# ax.set_xlabel('steps', {'size': 15})
+# ax.set_ylabel('norm of average velocity with error bar', {'size': 15})
+# ax.set_title('norm of average velocity with error bar over steps', {'size': 15})
+# ax.legend(loc='best')
+# plt.savefig('norm of average velocity over last 2000 steps with error bars.png')
+# plt.show()
 
-
-
-y_v = vel_avg_norm_arr[-20001:-1] - np.average(vel_avg_norm_arr[-20001:-1])
+y_v = vel_avg_norm_arr[-2000:] - np.average(vel_avg_norm_arr[-2000:])
 fft_y_v = fft(y_v)
-N = 20000
+N = 2000
 x = np.arange(N)
 half_x = x[range(int(N / 2))]  # get the half domain
+
 abs_y_v = np.abs(fft_y_v)  # get the mod of the complex number
-abs_y_v[0] = 0
 angle_y_v = np.angle(fft_y_v)  # get the angle of the complex number
 normalization_y_v = abs_y_v / N  # normalization
 normalization_half_y_v = normalization_y_v[range(int(N / 2))]  # because symmetric, use half of the domain
-fig = plt.figure()
-ax = fig.add_subplot(111)
-plt.plot(half_x[0:100], normalization_half_y_v[0:100])
-before = 0
-for i,j in zip(half_x[0:100], normalization_half_y_v[0:100]):
-    if 1 <= i < 30 and j >= before:
-        ax.annotate('%s)' % j, xy=(i, j), xytext=(30, 0), textcoords='offset points')
-        ax.annotate('(%s,' %i, xy=(i,j))
-    before = j
-plt.title('Unilateral amplitude spectrum xy(after normalization) for last 20000 vel')
-plt.savefig('Unilateral amplitude spectrum xy(after normalization) for last 20000 vel.png')
-plt.show()
-fig = plt.figure()
-ax = fig.add_subplot(111)
-plt.plot(x[0:100], abs_y_v[0:100])
-before = 0
-for i,j in zip(x[0:100], abs_y_v[0:100]):
-    if 1 <= i < 30 and j >= before:
-        ax.annotate('%s)' % j, xy=(i, j), xytext=(30, 0), textcoords='offset points')
-        ax.annotate('(%s,' %i, xy=(i,j))
-    before = j
-plt.title('amplitude spectrum xy(after normalization) for last 20000 H_NDist_norm')
-plt.savefig('amplitude spectrum xy(after normalization) for last 20000 H_NDist_norm.png')
+
+plt.plot(half_x, normalization_half_y_v)
+plt.title('Unilateral amplitude spectrum (after normalization) for last 2000 vel')
+plt.savefig('Unilateral amplitude spectrum (after normalization) for last 2000 vel.png')
 plt.show()
 
-y_v = vel_avg_norm_arr[-40001:-1] - np.average(vel_avg_norm_arr[-40001:-1])
-fft_y_v = fft(y_v)
-N = 40000
+plt.plot(x, abs_y_v)
+plt.title('amplitude spectrum (after normalization) for last 2000 H_NDist_norm')
+plt.savefig('amplitude spectrum (after normalization) for last 2000 H_NDist_norm.png')
+plt.show()
+
+y_H = H_NDist_norm_arr[-2000:] - np.average(H_NDist_norm_arr[-2000:])
+fft_y_H = fft(y_H)
+N = 2000
 x = np.arange(N)
 half_x = x[range(int(N / 2))]  # get the half domain
-abs_y_v = np.abs(fft_y_v)  # get the mod of the complex number
-abs_y_v[0] = 0
-angle_y_v = np.angle(fft_y_v)  # get the angle of the complex number
-normalization_y_v = abs_y_v / N  # normalization
-normalization_half_y_v = normalization_y_v[range(int(N / 2))]  # because symmetric, use half of the domain
-fig = plt.figure()
-ax = fig.add_subplot(111)
-plt.plot(half_x[0:100], normalization_half_y_v[0:100])
-before = 0
-for i,j in zip(half_x[0:100], normalization_half_y_v[0:100]):
-    if 1 <= i < 30 and j >= before:
-        ax.annotate('%s)' % j, xy=(i, j), xytext=(30, 0), textcoords='offset points')
-        ax.annotate('(%s,' %i, xy=(i,j))
-    before = j
-plt.title('Unilateral amplitude spectrum xy(after normalization) for last 40000 vel')
-plt.savefig('Unilateral amplitude spectrum xy(after normalization) for last 40000 vel.png')
-plt.show()
-fig = plt.figure()
-ax = fig.add_subplot(111)
-plt.plot(x[0:100], abs_y_v[0:100])
-before = 0
-for i,j in zip(x[0:100], abs_y_v[0:100]):
-    if 1 <= i < 30 and j >= before:
-        ax.annotate('%s)' % j, xy=(i, j), xytext=(30, 0), textcoords='offset points')
-        ax.annotate('(%s,' %i, xy=(i,j))
-    before = j
-plt.title('amplitude spectrum xy(after normalization) for last 40000 H_NDist_norm')
-plt.savefig('amplitude spectrum xy(after normalization) for last 40000 H_NDist_norm.png')
+
+abs_y_H = np.abs(fft_y_H)  # get the mod of the complex number
+angle_y_H = np.angle(fft_y_H)  # get the angle of the complex number
+normalization_y_H = abs_y_H / N  # normalization
+normalization_half_y_H = normalization_y_H[range(int(N / 2))]  # because symmetric, use half of the domain
+
+plt.plot(half_x, normalization_half_y_H)
+plt.title('Unilateral amplitude spectrum (after normalization) for last 2000 H_NDist_norm')
+plt.savefig('Unilateral amplitude spectrum (after normalization) for last 2000 H_NDist_norm.png')
 plt.show()
 
-y_v = vel_avg_norm_arr[-80001:-1] - np.average(vel_avg_norm_arr[-80001:-1])
-fft_y_v = fft(y_v)
-N = 80000
-x = np.arange(N)
-half_x = x[range(int(N / 2))]  # get the half domain
-abs_y_v = np.abs(fft_y_v)  # get the mod of the complex number
-abs_y_v[0] = 0
-angle_y_v = np.angle(fft_y_v)  # get the angle of the complex number
-normalization_y_v = abs_y_v / N  # normalization
-normalization_half_y_v = normalization_y_v[range(int(N / 2))]  # because symmetric, use half of the domain
-fig = plt.figure()
-ax = fig.add_subplot(111)
-plt.plot(half_x[0:100], normalization_half_y_v[0:100])
-before = 0
-for i,j in zip(half_x[0:100], normalization_half_y_v[0:100]):
-    if 1 <= i < 30 and j >= before:
-        ax.annotate('%s)' % j, xy=(i, j), xytext=(30, 0), textcoords='offset points')
-        ax.annotate('(%s,' %i, xy=(i,j))
-    before = j
-plt.title('Unilateral amplitude spectrum xy(after normalization) for last 80000 vel')
-plt.savefig('Unilateral amplitude spectrum xy(after normalization) for last 80000 vel.png')
-plt.show()
-fig = plt.figure()
-ax = fig.add_subplot(111)
-plt.plot(x[0:100], abs_y_v[0:100])
-before = 0
-for i,j in zip(x[0:100], abs_y_v[0:100]):
-    if 1 <= i < 30 and j >= before:
-        ax.annotate('%s)' % j, xy=(i, j), xytext=(30, 0), textcoords='offset points')
-        ax.annotate('(%s,' %i, xy=(i,j))
-    before = j
-plt.title('amplitude spectrum xy(after normalization) for last 80000 H_NDist_norm')
-plt.savefig('amplitude spectrum xy(after normalization) for last 80000 H_NDist_norm.png')
-plt.show()
-
-"""生成数据并设置绘图参数"""
-x = np.arange(last_num_steps)
-y = H_NDist_norm_arr
-y2 = vel_avg_norm_arr
-fig, axes = plt.subplots()
-# 设置两种绘图颜色
-c1 = 'b'
-c2 = 'r'
-fontsize = 12
-# 设置字体大小
-plt.plot(x, y, color=c1, label='H_NDist_norm')
-plt.plot(x, y2, color=c2, label='vel_avg_norm')
-axes.set_xlabel("step", fontsize=fontsize)
-axes.set_ylabel("H_NDist_norm (b), vel_avg_norm (r)", fontsize=fontsize)
-# 设置图表标题
-fig.suptitle("H_NDist_norm, vel_avg_norm vs step", fontsize=fontsize+2)
-plt.savefig('H_NDist_norm and vel_avg_norm_arr vs step.png')
-plt.show()
-
-
-
-x2 = x
-# 设置刻度线在坐标轴内
-plt.rcParams['xtick.direction'] = 'in'
-plt.rcParams['ytick.direction'] = 'in'
-"""绘图"""
-lns = []  # 用于存储绘图句柄以合并图例的list
-# 创建画布
-fig, axes = plt.subplots()
-fig.set_size_inches(10, 8)
-# 绘制图1并将绘图句柄返回，以便添加合并图例
-lns1 = axes.plot(x, y, color=c1, label=c1)
-lns = lns1
-# 创建双x轴双y轴
-twin_axes = axes.twinx().twiny()  # 使用画布的初始坐标轴对象创建第二对坐标轴，类似于在双x轴的基础上叠加双y轴
-# 绘制图2并将绘图句柄返回，以便添加合并图例
-lns2 = twin_axes.plot(x2, y2, color=c2, label=c2)
-lns += lns2
-# 设置坐标轴标注
-axes.set_xlabel("step",color=c1, fontsize=fontsize)
-axes.set_ylabel("H_NDist_arr",color=c1, fontsize=fontsize)
-# twin_axes.set_xlabel("X2",color=c2, fontsize=fontsize)
-twin_axes.set_ylabel("vel_avg_norm_arr",color=c2, fontsize=fontsize) # 第二个y轴设置标注无效
-# 设置图表标题
-fig.suptitle("H_NDist_norm, vel_avg_norm vs step", fontsize=fontsize+2)
-# 设置第二个y轴的label；由于set_ylabel无效，因此只能通过该种方式手动添加
-loc_text_x=np.min(plt.xlim())+np.ptp(plt.xlim())*1.03
-loc_text_y=np.min(plt.ylim())+np.ptp(plt.ylim())*0.5
-str_text = 'vel_avg_norm_arr'
-twin_axes.text(loc_text_x, loc_text_y, str_text,rotation=90,color=c2,fontsize=fontsize)
-# 添加图例
-# lns = lns1+lns2
-labs = [l.get_label() for l in lns]
-axes.legend(lns, labs, loc=0, fontsize=fontsize)
-plt.tight_layout()
-plt.savefig('H_NDist_arr and vel_avg_norm_arr vs step2.png')
+plt.plot(x, abs_y_H)
+plt.title('amplitude spectrum (after normalization) for last 2000 H_NDist_norm')
+plt.savefig('amplitude spectrum (after normalization) for last 2000 H_NDist_norm.png')
 plt.show()
 
 
@@ -448,3 +440,5 @@ f.close()
 
 # analyse last 1000 for every 100 have a Hndist and calculate its std
 # 10, 100, 1000, 10000
+
+# std for v_a is the std for the last 2000 v

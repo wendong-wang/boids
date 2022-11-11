@@ -6,7 +6,7 @@
 # end time: ~
 
 '''
-version description:
+vicsek model version description:
     改成[3]中的模型，描述参考[2]，加入数据处理部分
 
 相对与上一版改进的说明：
@@ -14,12 +14,12 @@ version description:
     结构也大改，将仿真作为类的一个方法，并将仿真数据与模型参数数据进行隔离
 '''
 #考虑：
-#   1. 动画部分要不要放入VICSEK类中
-#   2. 数学计算采用[2]的方式？还是逐个元素进行相应的计算
-#   3. 加速度的表示，注意量纲dimension
-#   4. 各种区间边界的开闭确定： 角度， 噪声
-#   5. HDF5数据的结构
-#   7. 能否把控时间，而不只是仅仅考虑多少步，simulationTime step（暂时删除）存在的意义
+#   1. 数学计算采用[2]的方式？还是逐个元素进行相应的计算
+#   2. 加速度的表示，注意量纲dimension
+#   3. 各种区间边界的开闭确定： 角度， 噪声
+#   4. HDF5数据的结构
+#   5. 能否把控时间，而不只是仅仅考虑多少步，simulationTime step（暂时删除）存在的意义
+#   6. 把视频保存放进data_Save()函数
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -126,7 +126,7 @@ class VICSEK():
         ani = animation.FuncAnimation(fig=fig, func=self._move, frames=self.stepNum-1, interval=20, blit=False, repeat=False) # frams-1是因为frame会传两个参数0
         plt.xlim((0, self.l))
         plt.ylim((0, self.l))
-        ani.save('./sin_dot.gif', fps=20)
+        ani.save('./vicsek.gif', fps=20)
         self.pbar.finish()
         print(":) \"Video is saved successfully.\"",self.name,"said")
         self.data_Save()

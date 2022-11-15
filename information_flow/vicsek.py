@@ -17,7 +17,6 @@ vicsek model version description:
 '''
 #考虑：
 #   1. 数学计算采用[2]的方式？还是逐个元素进行相应的计算
-<<<<<<< HEAD
 #   2. 加速度的表示，注意量纲dimension (暂时不考虑惯性了)
 #   3. 各种区间边界的开闭确定： 角度， 噪声
 #   4. HDF5数据的结构 (暂不建立group, only dataset)
@@ -25,13 +24,6 @@ vicsek model version description:
 #   6. 把视频保存放进data_Save()函数
 #   7. 全大写的变量定义为常量，这里希望进行略微的修改(为了步保证变量，后面加入小写)
 #   ·。版本修改3.8->3.6 (numpy 在python3.8 下的一些函数竟然在 python3.6中也好使？虽然代码上没有了相应的提示符 weird)
-=======
-#   2. 加速度的表示，注意量纲dimension
-#   3. 各种区间边界的开闭确定： 角度， 噪声
-#   4. HDF5数据的结构
-#   5. 能否把控时间，而不只是仅仅考虑多少步，simulationTime step（暂时删除）存在的意义
-#   6. 把视频保存放进data_Save()函数
->>>>>>> Jiahuan
 
 import numpy as np
 
@@ -294,7 +286,7 @@ class Vicsek():
         self.Vo = np.hstack((self.v*np.cos(self.Theta),self.v*np.sin(self.Theta)))
         # print(self.Vo)
         self.Po  = self.Po + self.Vo * 1 # 1 means time
-        # print(self.P) 
+        # print(self.Po) 
         self.Po = np.mod(self.Po, self.l) # 取余
         return self.Po, self.Theta
 
